@@ -1,7 +1,18 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Investicni asistent API")
+app = FastAPI(title="Investicni asistent API")
+
+# CORS – pro vývoj povolíme všechny origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # TODO: později zpřísnit na konkrétní domény (Netlify apod.)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class AnalyzeRequest(BaseModel):

@@ -1,6 +1,29 @@
-// Zatím jen lokální logika v prohlížeči.
-// V dalších blocích tady nahradíme "fake" odpověď
-// voláním backendu (FastAPI) přes fetch.
+// Základní konfigurace – URL backendu (lokálně)
+const API_BASE_URL = "http://127.0.0.1:8000";
+// Pokud bys backend spouštěl na jiném portu (např. 8001), uprav na:
+// const API_BASE_URL = "http://127.0.0.1:8001";
+
+async function callAnalyze(question, tickers) {
+  const payload = {
+    question: question,
+    tickers: tickers && tickers.trim() !== "" ? tickers.trim() : null,
+  };
+
+  const response = await fetch(`${API_BASE_URL}/analyze`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Server error ${response.status}: ${text}`);
+  }
+
+  return response.json(); // vrátí { analysis_text: "..." }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const questionInput = document.getElementById("question");
@@ -8,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const outputDiv = document.getElementById("output");
   const analyzeButton = document.getElementById("analyzeButton");
 
-  analyzeButton.addEventListener("click", () => {
+  analyzeButton.addEventListener("click", async () => {
     const question = questionInput.value.trim();
     const tickers = tickersInput.value.trim();
 
@@ -17,18 +40,21 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Zatím jen jednoduchá simulace odpovědi:
-    const now = new Date().toLocaleString("cs-CZ");
-    const info = [
-      `Čas dotazu: ${now}`,
-      "",
-      "Zadal jsi:",
-      `Dotaz: ${question}`,
-      tickers ? `Tickery: ${tickers}` : "Tickery: (nevyplněno)",
-      "",
-      "Další krok: v dalším bloku připojíme backend, který sem vrátí reálnou analýzu."
-    ].join("\n");
+    // UI: indikace, že se něco děje
+    analyzeButton.disabled = true;
+    analyzeButton.textContent = "Analyzuji…";
+    outputDiv.textContent = "Dotaz odeslán na backend, čekám na odpověď...";
 
-    outputDiv.textContent = info;
+    try {
+      const data = await callAnalyze(question, tickers);
+      outputDiv.textContent = data.analysis_text || "Backend nevrátil analysis_text.";
+    } catch (err) {
+      console.error(err);
+      outputDiv.textContent =
+        "Došlo k chybě při komunikaci s backendem: " + err.message;
+    } finally {
+      analyzeButton.disabled = false;
+      analyzeButton.textContent = "Odeslat dotaz";
+    }
   });
 });
