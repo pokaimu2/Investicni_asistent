@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Investiční asistent</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Investiční asistent</h1>
+    <p>Demo verze – dotaz zatím jen zpracujeme na straně prohlížeče.</p>
+  </header>
+
+  <main>
+    <section class="input-section">
+      <label for="question">Tvůj dotaz (investice, akcie, komodity):</label>
+      <textarea id="question" rows="5" placeholder="Např. Jak si vede Apple za posledních 5 let?"></textarea>
+
+      <label for="tickers">Ticker(y) (volitelné):</label>
+      <input id="tickers" type="text" placeholder="Např. AAPL, MSFT" />
+
+      <button id="analyzeButton">Odeslat dotaz</button>
+    </section>
+
+    <section class="output-section">
+      <h2>Odpověď asistenta</h2>
+      <div id="output">
+        Zatím jen ukážeme, co jsi zadal. V dalších blocích to napojíme na backend.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>© 2025 Investiční asistent (maturitní projekt)</small>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
