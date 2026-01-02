@@ -1,18 +1,10 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import json
 
-app = FastAPI(title="Investicni asistent API")
-app = FastAPI(title="Investicni asistent API")
-
-# CORS – pro vývoj povolíme všechny origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # TODO: později zpřísnit na konkrétní domény (Netlify apod.)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+import data_providers
+import openai_client
 
 
 class AnalyzeRequest(BaseModel):
@@ -24,26 +16,49 @@ class AnalyzeResponse(BaseModel):
     analysis_text: str
 
 
+# >>> TADY DEFINUJEME app – MUSÍ být před @app.get/@app.post <<<
+app = FastAPI(title="Investicni asistent API")
+
+# CORS – pro vývoj povolíme všechno
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
 
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze(request: AnalyzeRequest):
-    """
-    Zatím jen dummy logika:
-    vrátíme zpátky dotaz a tickery.
-    Později sem připojíme OpenAI + finanční API.
-    """
-    base_text = [
-        "Toto je zatím testovací odpověď backendu.",
-        f"Dotaz: {request.question}",
-        f"Tickery: {request.tickers or '(nevyplněno)'}",
-        "",
-        "V další fázi zde backend:",
-        "- stáhne data z finančních API,",
-        "- doplní news a počasí,",
-        "- zavolá OpenAI a vrátí skutečnou analýzu."
-    ]
-    return AnalyzeResponse(analysis_text="\n".join(base_text))
+    prices = data_providers.get_mock_prices(request.tickers)
+    news = data_providers.get_mock_news(request.tickers)
+    weather = data_providers.get_mock_weather_for_commodities()
+
+    context_data = {
+        "question": request.question,
+        "tickers": request.tickers,
+        "prices": prices,
+        "news": news,
+        "weather": weather,
+    }
+
+    try:
+        analysis_text = openai_client.generate_investment_analysis(
+            question=request.question,
+            context_data=context_data,
+        )
+    except Exception as e:
+        # pro vývoj – ať místo „Internal Server Error“ vidíš konkrétní problém
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chyba při volání OpenAI: {e}",
+        )
+
+    return AnalyzeResponse(analysis_text=analysis_text)
